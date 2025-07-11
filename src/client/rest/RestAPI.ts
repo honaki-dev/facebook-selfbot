@@ -1,14 +1,24 @@
 import { Client } from "../Client";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { Cookie, CookieJar } from "tough-cookie";
-import axios, { AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
+
+import { ThreadAPI } from "./ThreadAPI";
 
 export class RestAPI {
   private jar: CookieJar;
   private axios: AxiosInstance;
-  private client: Client;
 
+  // private clientId: string = (Math.random() * 23232).toFixed(0);
+  private requestCounter: number = 0;
+  private revision: string = "";
+  private csrf: string = "";
+  private jazoest: string = "";
+
+  public client: Client;
   public facebookCookies: string;
+
+  public thread: ThreadAPI;
 
   public constructor(client: Client) {
     this.jar = new CookieJar();
@@ -40,48 +50,133 @@ export class RestAPI {
         }
       })
     );
+
+    this.thread = new ThreadAPI(this);
   }
 
   public async get(...args: Parameters<AxiosInstance["get"]>) {
-    return this.axios.get(...args);
+    const task = await this.axios.get(...args);
+    if (task.status !== 200) {
+      throw new Error("Failed to request.");
+    }
+    return task;
   }
 
   public async post(...args: Parameters<AxiosInstance["post"]>) {
-    return this.axios.post(...args);
+    const data = args[1] as any;
+    if (!this.csrf) this.csrf = (await this.refreshCsrf()) as string;
+    const newObj = {
+      av: this.client.userId,
+      __user: this.client.userId,
+      __req: (this.requestCounter++).toString(36),
+      __rev: this.revision,
+      __a: 1,
+      fb_dtsg: this.csrf,
+      jazoest: this.jazoest
+    };
+    args[1] = {
+      ...data,
+      ...newObj
+    };
+    const task = await this.axios.post(...args);
+    if (task.status !== 200) {
+      throw new Error("Failed to request.");
+    }
+    return task;
   }
 
-  private facebookLink(path?: string) {
+  public facebookLink(path?: string): string {
     return `https://facebook.com${path ?? "/"}`;
   }
 
-  public async parseData(data: string) {
-    const newData = data.replace("for (;;);{", "{");
-    return JSON.parse(newData);
+  public async checkLogin(data: any) {
+    if (data?.error === 1357001) {
+      throw new Error("Facebook blocked the login.");
+    }
+  }
+
+  public async parseRequest(res: AxiosResponse): Promise<any> {
+    const { status, data: rawData, headers, config } = res;
+
+    if (status === 404) return {};
+    if (status !== 200) throw new Error(`Request got status code: ${status}`);
+
+    const cleaned = rawData.replace(/for\s*\(\s*;\s*;\s*\)\s*;\s*/, "");
+    const objectChunks = cleaned.split(/}\r?\n\s*{/);
+    const jsonStr =
+      objectChunks.length === 1
+        ? objectChunks[0]
+        : `[${objectChunks.join("},{")}]`;
+
+    let data: any[];
+    try {
+      data = JSON.parse(jsonStr);
+    } catch (err) {
+      throw new Error("Failed to parse JSON from response");
+    }
+
+    if (headers.location && config.method?.toLowerCase() === "get") {
+      const redirectedRes = await this.get(headers.location);
+      return await this.parseRequest(redirectedRes);
+    }
+
+    const jsmods = rawData?.jsmods;
+    const requireList = jsmods?.require;
+
+    if (Array.isArray(requireList) && requireList[0]?.[0] === "Cookie") {
+      const cookieParts = requireList[0][3];
+
+      const formatCookie = (arr: string[], domain: string) =>
+        `${arr[0]}=${arr[1]}; Path=${arr[3]}; Domain=${domain}.com`;
+
+      this.jar.setCookie(
+        formatCookie(cookieParts, "facebook"),
+        "https://www.facebook.com"
+      );
+      this.jar.setCookie(
+        formatCookie(cookieParts, "messenger"),
+        "https://www.messenger.com"
+      );
+    }
+
+    if (Array.isArray(requireList)) {
+      for (const entry of requireList) {
+        if (entry[0] === "DTSG" && entry[1] === "setToken") {
+          this.csrf = entry[3][0];
+        }
+      }
+    }
+
+    await this.checkLogin(data);
+
+    const statusResponse = data[data.length - 1];
+
+    if (statusResponse?.error_results > 0) {
+      throw new Error(data[0].o0.errors);
+    }
+
+    return Array.isArray(data) ? data[0] : data;
   }
 
   public async refreshCsrf(): Promise<string | null> {
-    const { status, data } = await this.get(
-      this.facebookLink("/ajax/dtsg/?__a=true")
-    );
-    if (status !== 200) return null;
-    const parsedData = await this.parseData(data);
+    const res = await this.get(this.facebookLink("/ajax/dtsg/?__a=true"));
+    const parsedData = await this.parseRequest(res);
     const csrf = parsedData.payload.token as string;
     return csrf;
   }
 
   public async init() {
-    const { status, data } = await this.get(this.facebookLink(), {
+    const { data } = await this.get(this.facebookLink(), {
       headers: { Accept: "text/html" }
     });
-
-    if (status !== 200) return {};
 
     const html = data as string;
 
     const extract = (regex: RegExp): string => regex.exec(html)?.[1] ?? "";
 
-    const jazoest = extract(/"jazoest".*?(\d+)/);
-    const clientRevision = extract(/"client_revision":(\d+)/);
+    this.jazoest = extract(/"jazoest".*?(\d+)/);
+    this.revision = extract(/"client_revision":(\d+)/);
+
     const sequenceId = extract(
       /\\"upsertSequenceId\\",\[[^,]+,\\"([^\]]+)\\"\]/
     );
@@ -95,6 +190,6 @@ export class RestAPI {
 
     this.client.userId = userId;
 
-    return { jazoest, clientRevision, gateway, sequenceId };
+    return { gateway, sequenceId };
   }
 }

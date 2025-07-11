@@ -69,7 +69,7 @@ export class WebSocketManager extends MqttClient {
     });
 
     this.on("message", (topic, payload) => {
-      console.log(topic, JSON.parse(payload.toString()));
+      // console.log(topic, JSON.parse(payload.toString()));
       const data = JSON.parse(payload.toString());
 
       switch (topic) {

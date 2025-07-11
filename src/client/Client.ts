@@ -4,6 +4,8 @@ import { ClientEvents } from "../enums/ClientEvents";
 import { WebSocketManager } from "./WebSocketManager";
 import { WebSocketManagerOptions } from "./WebSocketManager";
 import { AsyncEventEmitter } from "@vladfrangu/async_event_emitter";
+import { getUsernamePayload } from "../util/Utils";
+import { ThreadManager } from "../managers/ThreadManager";
 
 interface Cookie {
   key: string;
@@ -45,45 +47,36 @@ export class Client extends AsyncEventEmitter {
   // Client User
   public userId: string = "0";
 
+  // Managers
+  public threads: ThreadManager;
+
   public constructor(options: ClientOptions) {
     super();
 
     this.options = options;
     this.rest = new RestAPI(this);
+
+    this.threads = new ThreadManager(this);
   }
 
   public async start() {
     const { gateway, sequenceId } = await this.rest.init();
 
+    await this.threads.fetch();
+
     const guid = uuid();
     const sessionId = (Math.random() * 2 ** 53).toFixed(0);
-    const usernamePayload = {
-      a: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-      asi: null,
-      aid: 2220391788200892,
-      aids: null,
-      chat_on: this.options.onlineStatus,
-      cp: 3,
-      ct: "websocket",
-      d: guid,
-      dc: "",
-      ecp: 10,
-      fg: false,
-      gas: null,
-      mqtt_sid: "",
-      no_auto_fg: true,
-      p: null,
-      pack: [],
-      php_override: "",
-      pm: [],
-      s: sessionId,
-      st: [],
-      u: this.userId
-    };
+
+    const usernamePayload = getUsernamePayload({
+      guid,
+      sessionId,
+      onlineStatus: this.options.onlineStatus ?? true,
+      userId: this.userId
+    });
 
     const wsOptions: WebSocketManagerOptions = {
-      gateway: gateway as string,
-      sequenceId: sequenceId as string,
+      gateway: gateway,
+      sequenceId: sequenceId,
       mqttOptions: {
         clientId: "mqttwsclient",
         protocolId: "MQIsdp",
@@ -100,13 +93,14 @@ export class Client extends AsyncEventEmitter {
             Referer: "https://www.facebook.com/",
             Origin: "https://www.facebook.com",
             "User-Agent": usernamePayload.a,
-            Host: new URL(gateway as string).hostname
+            Host: new URL(gateway).hostname
           },
           origin: "https://www.facebook.com",
           protocolVersion: 13
         }
       }
     };
+
     this.ws = new WebSocketManager(this, wsOptions);
   }
 }
