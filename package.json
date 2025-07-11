@@ -1,0 +1,33 @@
+{
+  "name": "facebook-selfbot",
+  "version": "0.1.0",
+  "description": "A powerful JavaScript interface for interacting with Facebook Messenger through hidden APIs.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "tsx ./test.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/honaki-dev/facebook-selfbot.git"
+  },
+  "author": "Honaki",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/honaki-dev/facebook-selfbot/issues"
+  },
+  "homepage": "https://github.com/honaki-dev/facebook-selfbot#readme",
+  "devDependencies": {
+    "@types/mqtt": "^2.5.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@vladfrangu/async_event_emitter": "^2.4.6",
+    "axios": "^1.10.0",
+    "axios-cookiejar-support": "^6.0.3",
+    "mqtt": "^5.13.2",
+    "tough-cookie": "^5.1.2",
+    "uuid": "^11.1.0",
+    "websocket-stream": "^5.5.2"
+  }
+}
