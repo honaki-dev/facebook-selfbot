@@ -1,8 +1,9 @@
-import {
+import { RestAPI } from "./RestAPI";
+
+import type {
   ThreadListResponse,
   ThreadResponse
 } from "../../interfaces/facebookResponses/ThreadResponse";
-import { RestAPI } from "./RestAPI";
 
 export class ThreadAPI {
   private rest: RestAPI;

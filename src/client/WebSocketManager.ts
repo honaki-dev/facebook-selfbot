@@ -35,6 +35,8 @@ export class WebSocketManager extends MqttClient {
 
   private lastSequenceId: string | number = 0;
 
+  public tasks!: Record<string, any>;
+
   public constructor(client: Client, options: WebSocketManagerOptions) {
     const wsOpts = options.mqttOptions.wsOptions ?? ({} as any);
     const buildStream = () => WebSocketStream(options.gateway, wsOpts);
@@ -46,54 +48,57 @@ export class WebSocketManager extends MqttClient {
     this.handle();
   }
 
-  private handle() {
-    this.on("connect", () => {
-      console.log(`Connected.`);
-      this.client.emit(`ready`);
-      this.subscribe(this.topics);
+  private connectHandle() {
+    this.client.emit(`ready`);
+    this.subscribe(this.topics);
 
-      if (!this.lastSequenceId) {
-        this.lastSequenceId = this.managerOptions.sequenceId;
-      }
+    if (!this.lastSequenceId) {
+      this.lastSequenceId = this.managerOptions.sequenceId;
+    }
 
-      const queuePayload = JSON.stringify({
-        sync_api_version: 10,
-        max_deltas_able_to_process: 100,
-        delta_batch_size: 500,
-        encoding: "JSON",
-        entity_fbid: this.client.userId,
-        initial_titan_sequence_id: this.lastSequenceId
-      });
-
-      this.publish("/messenger_sync_create_queue", queuePayload, { qos: 0 });
+    const queuePayload = JSON.stringify({
+      sync_api_version: 10,
+      max_deltas_able_to_process: 100,
+      delta_batch_size: 500,
+      encoding: "JSON",
+      entity_fbid: this.client.userId,
+      initial_titan_sequence_id: this.lastSequenceId
     });
 
-    this.on("message", (topic, payload) => {
-      // console.log(topic, JSON.parse(payload.toString()));
-      const data = JSON.parse(payload.toString());
+    this.publish("/messenger_sync_create_queue", queuePayload, { qos: 0 });
+  }
 
-      switch (topic) {
-        case "/t_ms":
-          this.lastSequenceId =
-            data.lastIssuedSeqId ?? data.firstDeltaSeqId ?? this.lastSequenceId;
+  private messageHandle(topic: string, payload: Buffer) {
+    // console.log(topic, JSON.parse(payload.toString()));
+    const data = JSON.parse(payload.toString());
 
-          if (!data.deltas) break;
+    switch (topic) {
+      case "/t_ms":
+        this.lastSequenceId =
+          data.lastIssuedSeqId ?? data.firstDeltaSeqId ?? this.lastSequenceId;
 
-          for (const delta of data.deltas) {
-            const handlerKey = delta.class as keyof typeof WebSocketHandlers;
+        if (!data.deltas) break;
 
-            const handler = WebSocketHandlers[handlerKey];
-            if (typeof handler === "function") {
-              handler(this.client, delta);
-            }
+        for (const delta of data.deltas) {
+          const handlerKey = delta.class as keyof typeof WebSocketHandlers;
+
+          const handler = WebSocketHandlers[handlerKey];
+          if (typeof handler === "function") {
+            handler(this.client, delta);
           }
+        }
 
-          break;
+        break;
 
-        default:
-          break;
-      }
-    });
+      default:
+        break;
+    }
+  }
+
+  private handle() {
+    this.on("connect", this.connectHandle);
+
+    this.on("message", this.messageHandle);
 
     this.on("error", console.error);
   }

@@ -1,15 +1,17 @@
 import { Client } from "../Client";
-import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { Cookie, CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 
 import { ThreadAPI } from "./ThreadAPI";
+import { UserAPI } from "./UserAPI";
+import { MessageAPI } from "./MessageAPI";
 
 export class RestAPI {
   private jar: CookieJar;
   private axios: AxiosInstance;
 
-  // private clientId: string = (Math.random() * 23232).toFixed(0);
+  private clientId: string = (Math.random() * 23232).toFixed(0);
   private requestCounter: number = 0;
   private revision: string = "";
   private csrf: string = "";
@@ -18,7 +20,10 @@ export class RestAPI {
   public client: Client;
   public facebookCookies: string;
 
+  // API
   public thread: ThreadAPI;
+  public user: UserAPI;
+  public message: MessageAPI;
 
   public constructor(client: Client) {
     this.jar = new CookieJar();
@@ -52,6 +57,8 @@ export class RestAPI {
     );
 
     this.thread = new ThreadAPI(this);
+    this.user = new UserAPI(this);
+    this.message = new MessageAPI(this);
   }
 
   public async get(...args: Parameters<AxiosInstance["get"]>) {

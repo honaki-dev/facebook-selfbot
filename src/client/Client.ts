@@ -6,6 +6,7 @@ import { WebSocketManagerOptions } from "./WebSocketManager";
 import { AsyncEventEmitter } from "@vladfrangu/async_event_emitter";
 import { getUsernamePayload } from "../util/Utils";
 import { ThreadManager } from "../managers/ThreadManager";
+import { ClientUser } from "../structures/ClientUser";
 
 interface Cookie {
   key: string;
@@ -46,6 +47,7 @@ export class Client extends AsyncEventEmitter {
 
   // Client User
   public userId: string = "0";
+  public user!: ClientUser;
 
   // Managers
   public threads: ThreadManager;
@@ -61,6 +63,9 @@ export class Client extends AsyncEventEmitter {
 
   public async start() {
     const { gateway, sequenceId } = await this.rest.init();
+
+    const rawUserInfo = await this.rest.user.fetch();
+    this.user = new ClientUser(this, rawUserInfo.payload.profiles[this.userId]);
 
     await this.threads.fetch();
 

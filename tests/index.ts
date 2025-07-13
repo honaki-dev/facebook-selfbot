@@ -6,11 +6,12 @@ const cookies = JSON.parse(readFileSync("cookies.json", "utf-8"));
 const client = new Client({ cookies });
 
 client.on("ready", async () => {
-  console.log("Ready!");
+  console.log(`Logged in as ${client.user.name}`);
 });
 
-client.on("messageCreate", (message) => {
-  console.log(client.threads.cache.get(message.thread?.id!)?.members?.cache);
+client.on("messageCreate", async (message) => {
+  const res = await client.rest.message.get(message.id, message.thread?.id!);
+  writeFileSync("response-message.json", JSON.stringify(res));
 });
 
 client.start();

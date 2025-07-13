@@ -1,6 +1,9 @@
 import { Base } from "./Base";
+import { Thread } from "./Thread";
 import { Client } from "../client/Client";
+import { ThreadMember } from "./ThreadMember";
 import { MessageDelta, MessageDeltaMention } from "../interfaces/delta/Message";
+
 import type { IThreadMessage } from "../interfaces/structures/ThreadMessage";
 
 export class ThreadMessage extends Base implements IThreadMessage {
@@ -9,13 +12,18 @@ export class ThreadMessage extends Base implements IThreadMessage {
   public createdAt?: Date;
   public createdTimestamp?: number;
   public mentions?: Record<string, string>;
-  public thread?: { id?: string };
-  public author?: { id?: string };
+  public thread?: Thread;
+  public author?: ThreadMember;
 
-  public constructor(client: Client, data: MessageDelta) {
+  public constructor(
+    client: Client,
+    data: MessageDelta,
+    thread: Thread,
+    author: ThreadMember
+  ) {
     super(client);
 
-    this.patch(data);
+    this.patch(data, thread, author);
   }
 
   private parseMentions(data: string | undefined, content: string) {
@@ -27,18 +35,15 @@ export class ThreadMessage extends Base implements IThreadMessage {
     }, {} as Record<string, string>);
   }
 
-  public patch(data: MessageDelta) {
+  public async patch(data: MessageDelta, thread: Thread, author: ThreadMember) {
     this.id = data.messageMetadata.messageId;
     this.content = data.body;
     this.attachments = data.attachments;
-    this.createdTimestamp = parseInt(data.messageMetadata.timestamp);
+    this.createdTimestamp = parseInt(data.messageMetadata.timestamp, 10);
     this.createdAt = new Date(this.createdTimestamp);
-    this.mentions = this.parseMentions(data.data.prng, this.content);
-    const threadKey = data.messageMetadata.threadKey;
-    this.thread = {
-      id: threadKey.threadFbId ?? threadKey.otherUserFbId
-    };
-    this.author = { id: data.messageMetadata.actorFbId };
+    this.mentions = this.parseMentions(data.data?.prng, this.content || "");
+    this.author = author;
+    this.thread = thread;
 
     return data;
   }

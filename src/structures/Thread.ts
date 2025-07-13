@@ -4,6 +4,8 @@ import { MessageThreadsNode } from "../interfaces/facebookResponses/ThreadRespon
 
 import type { IThread } from "../interfaces/structures/Thread";
 import { ThreadMemberManager } from "../managers/ThreadMemberManager";
+import { SendMessagePayload } from "../interfaces/options/SendMessage";
+import { ThreadMessage } from "./ThreadMessage";
 
 export class Thread extends Base implements IThread {
   public name?: string;
@@ -43,5 +45,17 @@ export class Thread extends Base implements IThread {
     this.type = thread.thread_type;
 
     return data;
+  }
+
+  public async send(options: SendMessagePayload) {
+    const content = typeof options === "string" ? options : options.content;
+    // const { id } = await this.client.rest.message.send({ content });
+    // const data = await this.client.rest.message.get(id);
+    // return new ThreadMessage(
+    //   this.client,
+    //   data,
+    //   this,
+    //   this.members?.cache.get(this.client.userId)!
+    // );
   }
 }

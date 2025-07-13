@@ -8,7 +8,7 @@ export abstract class Base {
     this.client = client;
   }
 
-  public abstract patch(data: any): any;
+  public abstract patch(...args: any[]): any;
 
   public valueOf() {
     return this.id;
