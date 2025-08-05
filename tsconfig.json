@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        /* Language and Environment */
+        "target": "esnext",
+        "moduleDetection": "auto",
+
+        /* Modules */
+        "module": "commonjs",
+        "rootDir": "./src",
+        "moduleResolution": "node",
+        "baseUrl": "./",
+
+        /* Emit */
+        "declaration": true,
+        "declarationMap": true,
+        "inlineSourceMap": true,
+        "outDir": "./dist",
+        "importHelpers": true,
+        "newLine": "lf",
+        "noEmitHelpers": true,
+        "declarationDir": "./dist",
+
+        /* Interop Constraints */
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+
+        /* Type Checking */
+        "strict": true,
+        "alwaysStrict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "allowUnusedLabels": false,
+        "allowUnreachableCode": false,
+
+        /* Completeness */
+        "skipLibCheck": true
+    },
+    "exclude": ["node_modules"],
+    "include": ["src/**/*"]
+}

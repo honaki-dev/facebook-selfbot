@@ -1,0 +1,36 @@
+{
+    "name": "facebook-selfbot",
+    "version": "0.1.0",
+    "description": "A powerful NodeJS module for interacting with Facebook Chat API using user account.",
+    "type": "commonjs",
+    "main": "./dist/index.js",
+    "scripts": {
+        "build": "tsc"
+    },
+    "repository": "git+https://github.com/honaki-dev/facebook-selfbot.git",
+    "keywords": [
+        "facebook",
+        "fbchat",
+        "typescript"
+    ],
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "author": "Honaki Tran <conghoang.dev09@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/honaki-dev/facebook-selfbot/issues"
+    },
+    "homepage": "https://github.com/honaki-dev/facebook-selfbot#readme",
+    "devDependencies": {
+        "@types/node": "^24.2.0",
+        "ts-node": "^10.9.2",
+        "tslib": "^2.8.1",
+        "typescript": "^5.9.2"
+    },
+    "dependencies": {
+        "axios": "^1.11.0",
+        "axios-cookiejar-support": "^6.0.4",
+        "tough-cookie": "^5.1.2"
+    }
+}
