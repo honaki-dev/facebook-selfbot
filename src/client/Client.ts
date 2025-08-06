@@ -1,9 +1,22 @@
-import { FacebookSelfbotError } from "./../errors/FacebookSelfbotError";
 import { RestManager } from "./RestManager";
+import { FacebookSelfbotError } from "./../errors/FacebookSelfbotError";
 
 import type { RawCookies } from "./../types/cookies";
 
-export type ClientOptions = {};
+export type MessageOptions = {
+    autoMarkRead?: boolean;
+    autoMarkDelivery?: boolean;
+    selfListen?: boolean;
+};
+
+export type ClientOptions = {
+    userAgent?: string;
+    message?: MessageOptions;
+    online?: boolean;
+    autoReconnect?: boolean;
+    logLevel?: "info" | "warn" | "error";
+};
+
 export type CredentialsWithCookies = {
     cookies: RawCookies;
     email?: never;
@@ -23,7 +36,15 @@ export class Client {
     public rest: RestManager;
 
     constructor(options?: ClientOptions) {
-        this.options = options ?? {};
+        this.options = {
+            message: {
+                autoMarkRead: true,
+                ...options?.message,
+            },
+            autoReconnect: true,
+            logLevel: "info",
+            ...options,
+        };
 
         this.rest = new RestManager();
     }
@@ -53,6 +74,9 @@ export class Client {
             const { data } = await this.rest.get(url, params);
             if (data.error_code) throw new FacebookSelfbotError(data.error_msg);
             const { session_cookies } = data;
+            if (!session_cookies || !Array.isArray(session_cookies)) {
+                throw new FacebookSelfbotError("Login failed: No session cookies returned.");
+            }
             await this.rest.setCookies(session_cookies);
         }
     }

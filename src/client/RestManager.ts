@@ -1,6 +1,6 @@
+import { CookieJar } from "tough-cookie";
 import axios, { AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
-import { CookieJar } from "tough-cookie";
 
 import type { RawCookies } from "./../types/cookies";
 
